@@ -2,7 +2,7 @@
 #include "../inc/Parser.h"
 
 int main() {
-    std::string test = "3 + 4";
+    std::string test = "31 + 4 * 2 / (1 - 5) ^ 2 ^ 3";
 
     Parser myParser(test);
 
