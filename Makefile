@@ -6,7 +6,7 @@ OBJ_DIR := obj
 BIN_DIR := .
 
 # Define our output target
-TARGET := $(BIN_DIR)/rdbms
+TARGET := $(BIN_DIR)/parser
 
 # Gather a list of the source and object files
 SRCS := $(wildcard $(SRC_DIR)/*.cpp)
