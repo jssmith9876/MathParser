@@ -3,8 +3,16 @@
 /*
  *  Constructors
  */
-Parser::Parser() {}
-Parser::Parser(std::string infixStr) {
+ExpressionHandler::ExpressionHandler() {}
+ExpressionHandler::ExpressionHandler(const std::vector<std::string>& freeVars) {
+    m_freeVars = freeVars;
+}
+ExpressionHandler::ExpressionHandler(const std::string& infixStr) {
+    m_infixStr = infixStr;
+    parseToPostfix();
+}
+ExpressionHandler::ExpressionHandler(const std::vector<std::string>& freeVars, const std::string& infixStr) {
+    m_freeVars = freeVars;
     m_infixStr = infixStr;
     parseToPostfix();
 }
@@ -12,25 +20,26 @@ Parser::Parser(std::string infixStr) {
 /*
  *  Getters
  */
-std::string Parser::getInfixStr() const {
+std::vector<std::string> ExpressionHandler::getFreeVars() const {
+    return m_freeVars;
+}
+
+std::string ExpressionHandler::getInfixStr() const {
     return m_infixStr;
 }
 
-std::string Parser::getPostfixStr() const {
+std::string ExpressionHandler::getPostfixStr() const {
     std::string res = "";
-    std::queue<Token> temp_q = m_postfixQueue;  // Temporary queue to output the string
+    std::deque<Token>::const_iterator iter = m_postfixQueue.begin();
     Token t;
 
-    // Pull each token from the temp queue and add it to the string
-    while (!temp_q.empty()) {
-        t = temp_q.front();
+    while (iter != m_postfixQueue.end()) {
+        t = *iter++;
         if (t.isOp())
             res += t.getOp();
-        else 
+        else
             res += std::to_string(t.getVal());
         res += " ";
-
-        temp_q.pop();
     }
 
     return res;
@@ -39,7 +48,11 @@ std::string Parser::getPostfixStr() const {
 /*
  *  Setters
  */
-void Parser::setInfixStr(std::string infixStr) {
+void ExpressionHandler::setFreeVars(const std::vector<std::string>& freeVars) {
+    m_freeVars = freeVars;
+}
+
+void ExpressionHandler::setInfixStr(const std::string& infixStr) {
     m_infixStr = infixStr;
     parseToPostfix();
 }
@@ -47,7 +60,12 @@ void Parser::setInfixStr(std::string infixStr) {
 /*
  *  Other
  */
-void Parser::parseToPostfix() {
+
+/*
+ *  This method utilizes the Shunting-yard algorithm. 
+ *      More information can be found here: https://en.wikipedia.org/wiki/Shunting-yard_algorithm
+ */
+void ExpressionHandler::parseToPostfix() {
     std::stack<Token> operatorStack;
     std::string temp = "";
     int infixStrLen = m_infixStr.length();
@@ -69,7 +87,7 @@ void Parser::parseToPostfix() {
 
              // If the next character is NOT a digit, add the current number onto the output
              if (!isdigit(nextChar)) {
-                m_postfixQueue.push(Token(stoi(temp)));
+                m_postfixQueue.push_back(Token(stoi(temp)));
                 temp = "";
              }
         // Operators
@@ -86,7 +104,7 @@ void Parser::parseToPostfix() {
                 //  the top of the stack and the current op have the same prec AND the current op is left associative:
                 while (!stackTopToken.isLParen() && (currentToken.getPrec() < stackTopToken.getPrec() ||
                                                    (currentToken.getPrec() == stackTopToken.getPrec() && currentToken.isLAssoc()))) {
-                    m_postfixQueue.push(stackTopToken);
+                    m_postfixQueue.push_back(stackTopToken);
                     operatorStack.pop();
                     stackTopToken = operatorStack.top();
                 }
@@ -100,13 +118,13 @@ void Parser::parseToPostfix() {
 
         } else if (currentChar == ')') {
 
-            // While the top of the stack is not a left paren, pop it off and store it into the queue
+            // While the top of the stack is not a left paren, pop it off and store it into the deque
             Token stackTopToken = operatorStack.top();
 
             while (!stackTopToken.isLParen()) {
                 assert(!operatorStack.empty());
 
-                m_postfixQueue.push(stackTopToken);
+                m_postfixQueue.push_back(stackTopToken);
                 operatorStack.pop();
                 stackTopToken = operatorStack.top();
             }
@@ -117,20 +135,22 @@ void Parser::parseToPostfix() {
 
     }
 
-    // If we still have anything in our temp holder, then add it to the output queue
+    // If we still have anything in our temp holder, then add it to the output deque
     if (temp.length()) {
-        m_postfixQueue.push(Token(stoi(temp)));
+        m_postfixQueue.push_back(Token(stoi(temp)));
     }
 
+    // Push back the rest of the operators left on the stack (unless it's a left paren, then we throw an error)
     while (!operatorStack.empty()) {
         assert(!operatorStack.top().isLParen());
 
-        m_postfixQueue.push(operatorStack.top());
+        m_postfixQueue.push_back(operatorStack.top());
         operatorStack.pop();
     }
 }
 
-bool Parser::isOperator(char c) const {
+bool ExpressionHandler::isOperator(const char& c) const {
+    // Return true ONLY IF we are given an operator
     if (c == '+' ||
         c == '-' ||
         c == '*' ||
@@ -138,4 +158,45 @@ bool Parser::isOperator(char c) const {
         c == '^') return true;
 
     return false;
+}
+
+int ExpressionHandler::evaluate() const {
+    assert(m_postfixQueue.size());  // Make sure we have a queue to evaluate
+    
+    std::deque<Token>::const_iterator iter = m_postfixQueue.begin();
+    Token t;
+    std::stack<int> valueStack;
+    char currOp;
+    int temp1, temp2;
+
+    while (iter != m_postfixQueue.end()) {
+        t = *iter++;
+        if (t.isVal()) {
+            valueStack.push(t.getVal());
+        } else if (t.isOp()) {
+            currOp = t.getOp();
+            
+            // Get the top two values of the stack
+            temp1 = valueStack.top(); valueStack.pop();
+            temp2 = valueStack.top(); valueStack.pop();
+
+            if (currOp == '+') {
+                valueStack.push(temp2 + temp1);
+            } else if (currOp == '-') {
+                valueStack.push(temp2 - temp1);
+            } else if (currOp == '*') {
+                valueStack.push(temp2 * temp1);
+            } else if (currOp == '/') {
+                valueStack.push(temp2 / temp1);
+            } else if (currOp == '^') {
+                valueStack.push(pow(temp2, temp1));
+            }
+        }
+    }
+
+    // Sanity check
+    assert(valueStack.size() == 1);
+
+    return valueStack.top();
+
 }

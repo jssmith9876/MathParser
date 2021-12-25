@@ -1,12 +1,16 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include <iostream>
 #include <string>
 #include <stack>
-#include <queue>
+#include <deque>
+#include <vector>
+#include <math.h>
 #include <assert.h>
 
+/*
+ *  Token class to handle generic elements in the expression
+ */
 class Token {
 private:
     char m_op;
@@ -15,27 +19,35 @@ private:
     bool m_isVal = false;
     bool m_isLParen = false;
 public:
+    /*
+     *  Constructors
+     */
     Token() {}
-    Token(bool isLParen) { m_isLParen = isLParen; }
-    Token(char op) { m_op = op; m_isOp = true; }
-    Token(int val) { m_val = val; m_isVal = true; }
+    Token(const bool& isLParen) { m_isLParen = isLParen; }
+    Token(const char& op) { m_op = op; m_isOp = true; }
+    Token(const int& val) { m_val = val; m_isVal = true; }
 
+    /*
+     *  Methods to get the type of the token
+     */
     bool isOp() const { return m_isOp; }
-
     bool isVal() const { return m_isVal; }
-
     bool isLParen() const { return m_isLParen; }
 
+    /*
+     *  Getters
+     */
     char getOp() const {
         assert(m_isOp);
         return m_op;
     }
-
     int getVal() const {
         assert(m_isVal);
         return m_val;
     }
 
+
+    // Function to get operator precedence
     int getPrec() const {
         assert(m_isOp);
         if (m_op == '+' || m_op == '-') 
@@ -48,36 +60,44 @@ public:
             return -1;
     }
 
+    // Function to get whether the operator is left associative
     bool isLAssoc() const {
         assert(m_isOp);
-        
         return (m_op != '^');
     }
 
 };
 
-
-class Parser {
+/*
+ *  Expression handler class 
+ */
+class ExpressionHandler {
 private:
     std::string m_infixStr;
-    std::queue<Token> m_postfixQueue;
+    std::deque<Token> m_postfixQueue;
+    std::vector<std::string> m_freeVars;
 
     // Private functions
     void parseToPostfix();
-    bool isOperator(char) const;
+    bool isOperator(const char&) const;
 public:
     // Constructors
-    Parser();
-    Parser(std::string);
+    ExpressionHandler();
+    ExpressionHandler(const std::vector<std::string>&);
+    ExpressionHandler(const std::string&);
+    ExpressionHandler(const std::vector<std::string>&, const std::string&);
 
     // Getters
+    std::vector<std::string> getFreeVars() const;
     std::string getInfixStr() const;
     std::string getPostfixStr() const;
 
     // Setters
-    void setInfixStr(std::string);
+    void setFreeVars(const std::vector<std::string>&);
+    void setInfixStr(const std::string&);
 
     // Other
+    int evaluate() const; 
 };
 
 #endif
