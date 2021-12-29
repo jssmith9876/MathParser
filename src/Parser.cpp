@@ -1,17 +1,29 @@
 #include "../inc/Parser.h"
 
 /*
+ *  Helper Functions
+ */
+bool isOperatorChar(const char& c) {
+    if (c == '+' ||
+        c == '-' ||
+        c == '*' ||
+        c == '/' ||
+        c == '^') return true;
+    return false;
+}
+
+/*
  *  Constructors
  */
 ExpressionHandler::ExpressionHandler() {}
-ExpressionHandler::ExpressionHandler(const std::vector<std::string>& freeVars) {
+ExpressionHandler::ExpressionHandler(const std::vector<char>& freeVars) {
     m_freeVars = freeVars;
 }
 ExpressionHandler::ExpressionHandler(const std::string& infixStr) {
     m_infixStr = infixStr;
     parseToPostfix();
 }
-ExpressionHandler::ExpressionHandler(const std::vector<std::string>& freeVars, const std::string& infixStr) {
+ExpressionHandler::ExpressionHandler(const std::vector<char>& freeVars, const std::string& infixStr) {
     m_freeVars = freeVars;
     m_infixStr = infixStr;
     parseToPostfix();
@@ -20,7 +32,7 @@ ExpressionHandler::ExpressionHandler(const std::vector<std::string>& freeVars, c
 /*
  *  Getters
  */
-std::vector<std::string> ExpressionHandler::getFreeVars() const {
+std::vector<char> ExpressionHandler::getFreeVars() const {
     return m_freeVars;
 }
 
@@ -37,6 +49,8 @@ std::string ExpressionHandler::getPostfixStr() const {
         t = *iter++;
         if (t.isOp())
             res += t.getOp();
+        else if (t.isIden()) 
+            res += t.getIden();
         else
             res += std::to_string(t.getVal());
         res += " ";
@@ -48,7 +62,7 @@ std::string ExpressionHandler::getPostfixStr() const {
 /*
  *  Setters
  */
-void ExpressionHandler::setFreeVars(const std::vector<std::string>& freeVars) {
+void ExpressionHandler::setFreeVars(const std::vector<char>& freeVars) {
     m_freeVars = freeVars;
 }
 
@@ -69,13 +83,13 @@ void ExpressionHandler::parseToPostfix() {
     std::stack<Token> operatorStack;
     std::string temp = "";
     int infixStrLen = m_infixStr.length();
-    char currentChar;
-    char nextChar;
+    char prevChar = ' ', currentChar, nextChar;
+    std::vector<char>::iterator freeVarIter;
 
     for (int i = 0; i < infixStrLen; i++) {
         // Evaluate the character
         currentChar = m_infixStr[i];
-
+        
         // Get the next character (for parsing numbers)
         if (i + 1 < infixStrLen) {
             nextChar = m_infixStr[i + 1];
@@ -83,7 +97,16 @@ void ExpressionHandler::parseToPostfix() {
             nextChar = ' ';
         }
 
-        if (currentChar == ' ') {
+        // Check if the current char is a free variable
+        freeVarIter = std::find(m_freeVars.begin(), m_freeVars.end(), currentChar);
+
+
+        if (freeVarIter != m_freeVars.end() && 
+            !isalpha(prevChar) &&
+            !isalpha(nextChar)) {
+            
+            m_postfixQueue.push_back(Token(*freeVarIter));  
+        } else if (currentChar == ' ') {
             continue;
         } else if (isdigit(currentChar) || currentChar == '.') {
              temp += currentChar;
@@ -94,7 +117,7 @@ void ExpressionHandler::parseToPostfix() {
                 temp = "";
              }
         // Operators
-        } else if (isOperator(currentChar)) {
+        } else if (isOperatorChar(currentChar)) {
             Token currentToken(currentChar);
             
             if (!operatorStack.empty()) {
@@ -109,6 +132,9 @@ void ExpressionHandler::parseToPostfix() {
                                                    (currentToken.getPrec() == stackTopToken.getPrec() && currentToken.isLAssoc()))) {
                     m_postfixQueue.push_back(stackTopToken);
                     operatorStack.pop();
+                    if (operatorStack.empty()) {
+                        break;
+                    }
                     stackTopToken = operatorStack.top();
                 }
             }
@@ -136,6 +162,9 @@ void ExpressionHandler::parseToPostfix() {
             operatorStack.pop();
         }
 
+        // Set the previous char
+        prevChar = currentChar;
+
     }
 
     // If we still have anything in our temp holder, then add it to the output deque
@@ -152,24 +181,15 @@ void ExpressionHandler::parseToPostfix() {
     }
 }
 
-bool ExpressionHandler::isOperator(const char& c) const {
-    // Return true ONLY IF we are given an operator
-    if (c == '+' ||
-        c == '-' ||
-        c == '*' ||
-        c == '/' ||
-        c == '^') return true;
-
-    return false;
-}
-
-double ExpressionHandler::evaluate() const {
+// Private evaluate function that the public evaluate functions will call
+double ExpressionHandler::_evaluate(const std::map<char, double>& valueMap) const {
     assert(m_postfixQueue.size());  // Make sure we have a queue to evaluate
+    assert(valueMap.size() == m_freeVars.size());   // Make sure we're provided with the same number of values as we have free vars
     
     std::deque<Token>::const_iterator iter = m_postfixQueue.begin();
     Token t;
     std::stack<double> valueStack;
-    char currOp;
+    char currOp, currIden;
     double temp1, temp2;
 
     while (iter != m_postfixQueue.end()) {
@@ -194,6 +214,11 @@ double ExpressionHandler::evaluate() const {
             } else if (currOp == '^') {
                 valueStack.push(pow(temp2, temp1));
             }
+        } else if (t.isIden()) {
+            currIden = t.getIden();
+            assert(valueMap.count(currIden));   // Make sure the user provided a value for the free var
+            
+            valueStack.push(valueMap.at(currIden));
         }
     }
 
@@ -201,5 +226,12 @@ double ExpressionHandler::evaluate() const {
     assert(valueStack.size() == 1);
 
     return valueStack.top();
+}
 
+double ExpressionHandler::evaluate() const {
+    return _evaluate(std::map<char, double>());
+}
+
+double ExpressionHandler::evaluate(const std::map<char, double>& valueMap) const {
+    return _evaluate(valueMap);
 }

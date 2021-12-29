@@ -5,8 +5,13 @@
 #include <stack>
 #include <deque>
 #include <vector>
+#include <map>
 #include <math.h>
 #include <assert.h>
+#include <algorithm>
+
+// Helper Functions
+bool isOperatorChar(const char& c);
 
 /*
  *  Token class to handle generic elements in the expression
@@ -15,8 +20,13 @@ class Token {
 private:
     char m_op;
     bool m_isOp = false;
+
     double m_val;
     bool m_isVal = false;
+
+    char m_iden;
+    bool m_isIden = false;
+
     bool m_isLParen = false;
 public:
     /*
@@ -24,7 +34,13 @@ public:
      */
     Token() {}
     Token(const bool& isLParen) { m_isLParen = isLParen; }
-    Token(const char& op) { m_op = op; m_isOp = true; }
+    Token(const char& c) { 
+        if (isOperatorChar(c)) { 
+            m_op = c; m_isOp = true; 
+        } else {
+            m_iden = c; m_isIden = true;
+        }
+    }
     Token(const double& val) { m_val = val; m_isVal = true; }
 
     /*
@@ -32,6 +48,7 @@ public:
      */
     bool isOp() const { return m_isOp; }
     bool isVal() const { return m_isVal; }
+    bool isIden() const { return m_isIden; }
     bool isLParen() const { return m_isLParen; }
 
     /*
@@ -44,6 +61,10 @@ public:
     double getVal() const {
         assert(m_isVal);
         return m_val;
+    }
+    char getIden() const {
+        assert(m_isIden);
+        return m_iden;
     }
 
 
@@ -75,29 +96,30 @@ class ExpressionHandler {
 private:
     std::string m_infixStr;
     std::deque<Token> m_postfixQueue;
-    std::vector<std::string> m_freeVars;
+    std::vector<char> m_freeVars;
 
     // Private functions
     void parseToPostfix();
-    bool isOperator(const char&) const;
+    double _evaluate(const std::map<char, double>&) const;
 public:
     // Constructors
     ExpressionHandler();
-    ExpressionHandler(const std::vector<std::string>&);
+    ExpressionHandler(const std::vector<char>&);
     ExpressionHandler(const std::string&);
-    ExpressionHandler(const std::vector<std::string>&, const std::string&);
+    ExpressionHandler(const std::vector<char>&, const std::string&);
 
     // Getters
-    std::vector<std::string> getFreeVars() const;
+    std::vector<char> getFreeVars() const;
     std::string getInfixStr() const;
     std::string getPostfixStr() const;
 
     // Setters
-    void setFreeVars(const std::vector<std::string>&);
+    void setFreeVars(const std::vector<char>&);
     void setInfixStr(const std::string&);
 
     // Other
     double evaluate() const; 
+    double evaluate(const std::map<char, double>&) const;
 };
 
 #endif

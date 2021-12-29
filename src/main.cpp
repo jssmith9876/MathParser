@@ -2,13 +2,18 @@
 #include "../inc/Parser.h"
 
 int main(int argc, char** argv) {
-    std::string test = "(3.5 + 2.5) * 1.23";
+    // Create an infix string to parse through
+    std::string test = "x + 3*y + 2";
 
-    ExpressionHandler myParser(test);
+    std::vector<char> freeVars {'x', 'y'};
 
-    std::cout << myParser.getPostfixStr() << std::endl;
+    ExpressionHandler myParser(freeVars, test);
 
-    std::cout << myParser.evaluate() << std::endl;
+    std::map<char, double> valueMap;
+    valueMap['x'] = 1.0;
+    valueMap['y'] = 6.0;
+
+    std::cout << myParser.evaluate(valueMap) << std::endl;
 
     return 0;
 }
