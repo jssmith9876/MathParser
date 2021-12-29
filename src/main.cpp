@@ -2,7 +2,7 @@
 #include "../inc/Parser.h"
 
 int main(int argc, char** argv) {
-    std::string test = "2 ^ 3";
+    std::string test = "(3.5 + 2.5) * 1.23";
 
     ExpressionHandler myParser(test);
 

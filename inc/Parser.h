@@ -15,7 +15,7 @@ class Token {
 private:
     char m_op;
     bool m_isOp = false;
-    int m_val;
+    double m_val;
     bool m_isVal = false;
     bool m_isLParen = false;
 public:
@@ -25,7 +25,7 @@ public:
     Token() {}
     Token(const bool& isLParen) { m_isLParen = isLParen; }
     Token(const char& op) { m_op = op; m_isOp = true; }
-    Token(const int& val) { m_val = val; m_isVal = true; }
+    Token(const double& val) { m_val = val; m_isVal = true; }
 
     /*
      *  Methods to get the type of the token
@@ -41,7 +41,7 @@ public:
         assert(m_isOp);
         return m_op;
     }
-    int getVal() const {
+    double getVal() const {
         assert(m_isVal);
         return m_val;
     }
@@ -97,7 +97,7 @@ public:
     void setInfixStr(const std::string&);
 
     // Other
-    int evaluate() const; 
+    double evaluate() const; 
 };
 
 #endif

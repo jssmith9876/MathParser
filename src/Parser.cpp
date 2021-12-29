@@ -75,19 +75,22 @@ void ExpressionHandler::parseToPostfix() {
     for (int i = 0; i < infixStrLen; i++) {
         // Evaluate the character
         currentChar = m_infixStr[i];
-        if (i + 1 < infixStrLen)
+
+        // Get the next character (for parsing numbers)
+        if (i + 1 < infixStrLen) {
             nextChar = m_infixStr[i + 1];
-        else 
+        } else {
             nextChar = ' ';
+        }
 
         if (currentChar == ' ') {
             continue;
-        } else if (isdigit(currentChar)) {
+        } else if (isdigit(currentChar) || currentChar == '.') {
              temp += currentChar;
 
-             // If the next character is NOT a digit, add the current number onto the output
-             if (!isdigit(nextChar)) {
-                m_postfixQueue.push_back(Token(stoi(temp)));
+             // If the next character is NOT a digit or a decimal, add the current number onto the output
+             if (!isdigit(nextChar) && nextChar != '.') {
+                m_postfixQueue.push_back(Token(stod(temp)));
                 temp = "";
              }
         // Operators
@@ -137,7 +140,7 @@ void ExpressionHandler::parseToPostfix() {
 
     // If we still have anything in our temp holder, then add it to the output deque
     if (temp.length()) {
-        m_postfixQueue.push_back(Token(stoi(temp)));
+        m_postfixQueue.push_back(Token(stod(temp)));
     }
 
     // Push back the rest of the operators left on the stack (unless it's a left paren, then we throw an error)
@@ -160,14 +163,14 @@ bool ExpressionHandler::isOperator(const char& c) const {
     return false;
 }
 
-int ExpressionHandler::evaluate() const {
+double ExpressionHandler::evaluate() const {
     assert(m_postfixQueue.size());  // Make sure we have a queue to evaluate
     
     std::deque<Token>::const_iterator iter = m_postfixQueue.begin();
     Token t;
-    std::stack<int> valueStack;
+    std::stack<double> valueStack;
     char currOp;
-    int temp1, temp2;
+    double temp1, temp2;
 
     while (iter != m_postfixQueue.end()) {
         t = *iter++;
