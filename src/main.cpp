@@ -1,15 +1,15 @@
 #include <iostream>
 #include "../inc/Parser.h"
 
-int main(int argc, char** argv) {
+int main() {
     // Create an infix string to parse through
-    std::string test = "sin( max(2, 3) / 3 * 3.14) ";
+    std::string infixTest = "sin( max(2, 3) / 3 * 3.14)";
 
-    ExpressionHandler myParser(test);
+    ExpressionHandler myParser(infixTest);
 
     std::cout << myParser.getPostfixStr() << std::endl;
 
-    // std::cout << myParser.evaluate(valueMap) << std::endl;
+    std::cout << myParser.evaluate() << std::endl;
 
     return 0;
 }

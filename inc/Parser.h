@@ -15,6 +15,12 @@ bool isOperatorChar(const char& c);
 
 /*
  *  Token class to handle generic elements in the expression
+ *      Can take various elements through the overloaded constructors:
+ *          value -> double
+ *          operator -> char
+ *          identifier -> char
+ *          function -> string
+ *          left parenthesis -> bool
  */
 class Token {
 private:
@@ -106,12 +112,14 @@ private:
     std::string m_infixStr;
     std::deque<Token> m_postfixQueue;
     std::vector<char> m_freeVars;
-    const std::vector<std::string> m_functions { "sin", "cos", "max" };
+    const std::vector<std::string> m_functions { "sin", "cos", "tan", "csc", "sec", "cot",  // Trig functions
+                                                 "max", "min"                               // Misc functions
+                                                };
 
     // Private functions
     void parseToPostfix();
-    double _evaluate(const std::map<char, double>&) const;
     void getFunctionPos(std::map<std::string, std::vector<size_t>>&) const;
+    double _evaluate(const std::map<char, double>&) const;
 public:
     // Constructors
     ExpressionHandler();

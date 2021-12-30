@@ -1,7 +1,7 @@
 #include "../inc/Parser.h"
 
 /*
- *  Helper Functions
+ *  START HELPER FUNCTIONS
  */
 bool isOperatorChar(const char& c) {
     if (c == '+' ||
@@ -11,9 +11,12 @@ bool isOperatorChar(const char& c) {
         c == '^') return true;
     return false;
 }
+/*
+ *  END HELPER FUNCTIONS
+ */
 
 /*
- *  Constructors
+ *  START CONSTRUCTORS 
  */
 ExpressionHandler::ExpressionHandler() {}
 ExpressionHandler::ExpressionHandler(const std::vector<char>& freeVars) {
@@ -28,9 +31,12 @@ ExpressionHandler::ExpressionHandler(const std::vector<char>& freeVars, const st
     m_infixStr = infixStr;
     parseToPostfix();
 }
+/*
+ *  END CONSTRUCTORS
+ */
 
 /*
- *  Getters
+ *  START GETTERS
  */
 std::vector<char> ExpressionHandler::getFreeVars() const {
     return m_freeVars;
@@ -60,9 +66,12 @@ std::string ExpressionHandler::getPostfixStr() const {
 
     return res;
 }
+/*
+ *  END GETTERS
+ */
 
 /*
- *  Setters
+ *  START SETTERS
  */
 void ExpressionHandler::setFreeVars(const std::vector<char>& freeVars) {
     m_freeVars = freeVars;
@@ -72,15 +81,16 @@ void ExpressionHandler::setInfixStr(const std::string& infixStr) {
     m_infixStr = infixStr;
     parseToPostfix();
 }
-
 /*
- *  Other
+ *  END SETTERS
  */
 
+
 /*
- *  This method utilizes the Shunting-yard algorithm. 
- *      More information can be found here: https://en.wikipedia.org/wiki/Shunting-yard_algorithm
+ *  START PARSER FUNCTIONS
  */
+// This algorithm uses the Shunting-Yard algorithm
+//  For more information, reference the Wiki page: https://en.wikipedia.org/wiki/Shunting-yard_algorithm 
 void ExpressionHandler::parseToPostfix() {
     std::stack<Token> operatorStack;
     std::string temp = "";
@@ -218,6 +228,37 @@ void ExpressionHandler::parseToPostfix() {
         operatorStack.pop();
     }
 }
+    
+// Function to find all of the positions of the predefined functions in the string
+void ExpressionHandler::getFunctionPos(std::map<std::string, std::vector<size_t>>& functionPosInStr) const {
+    std::vector<size_t> currFunctionPos;
+    size_t currPos;
+    size_t infixStrSize = m_infixStr.size();
+
+    // Something that could probably be parallelized but I'm too lazy :-)
+    for (auto& func : m_functions) {
+        currPos = m_infixStr.find(func);
+
+        while (currPos != std::string::npos) {
+            currFunctionPos.push_back(currPos);
+
+            currPos = m_infixStr.find(func, currPos + infixStrSize);
+        }
+
+        functionPosInStr[func] = currFunctionPos;
+
+        // Reset the variables
+        currFunctionPos.clear();
+    }
+} 
+/*
+ *  END PARSER FUNCTIONS
+ */
+
+
+/*
+ *  START EVALUATOR FUNCTIONS
+ */
 
 // Private evaluate function that the public evaluate functions will call
 double ExpressionHandler::_evaluate(const std::map<char, double>& valueMap) const {
@@ -229,6 +270,7 @@ double ExpressionHandler::_evaluate(const std::map<char, double>& valueMap) cons
     std::stack<double> valueStack;
     char currOp, currIden;
     double temp1, temp2;
+    std::string currFunc;
 
     while (iter != m_postfixQueue.end()) {
         t = *iter++;
@@ -257,6 +299,36 @@ double ExpressionHandler::_evaluate(const std::map<char, double>& valueMap) cons
             assert(valueMap.count(currIden));   // Make sure the user provided a value for the free var
             
             valueStack.push(valueMap.at(currIden));
+        } else if (t.isFunc()) {
+            currFunc = t.getFunc();
+            temp1 = valueStack.top(); valueStack.pop();
+
+            // START TRIG FUNCTIONS
+            if (currFunc == "sin") {
+                valueStack.push(sin(temp1));
+            } else if (currFunc == "cos") {
+                valueStack.push(cos(temp1));
+            } else if (currFunc == "tan") {
+                valueStack.push(tan(temp1));
+            } else if (currFunc == "csc") {
+                valueStack.push(1.0 / sin(temp1));
+            } else if (currFunc == "sec") {
+                valueStack.push(1.0 / cos(temp1));
+            } else if (currFunc == "cot") {
+                valueStack.push(1.0 / tan(temp1));
+            } 
+            // END TRIG FUNCTIONS
+            // START MISC FUNCTIONS
+            else if (currFunc == "max") {
+                temp2 = valueStack.top(); valueStack.pop();
+
+                valueStack.push( (temp1 > temp2) ? temp1 : temp2 );
+            } else if (currFunc == "min") {
+                temp2 = valueStack.top(); valueStack.pop();
+
+                valueStack.push( (temp1 < temp2) ? temp1 : temp2 );
+            }
+            // END MISC FUNCTIONS
         }
     }
 
@@ -274,26 +346,8 @@ double ExpressionHandler::evaluate(const std::map<char, double>& valueMap) const
     return _evaluate(valueMap);
 }
 
+/*
+ *  END EVALUATOR FUNCTIONS
+ */
 
-// Function to find all of the positions of the predefined functions in the string
-void ExpressionHandler::getFunctionPos(std::map<std::string, std::vector<size_t>>& functionPosInStr) const {
-    std::vector<size_t> currFunctionPos;
-    size_t currPos;
-    size_t infixStrSize = m_infixStr.size();
 
-    // Something that could probably be parallelized but I'm too lazy :-)
-    for (auto& func : m_functions) {
-        currPos = m_infixStr.find(func);
-
-        while (currPos != std::string::npos) {
-            currFunctionPos.push_back(currPos);
-
-            currPos = m_infixStr.find(func, currPos + infixStrSize);
-        }
-
-        functionPosInStr[func] = currFunctionPos;
-
-        // Reset the variables
-        currFunctionPos.clear();
-    }
-} 
