@@ -27,6 +27,9 @@ private:
     char m_iden;
     bool m_isIden = false;
 
+    std::string m_func;
+    bool m_isFunc = false;
+
     bool m_isLParen = false;
 public:
     /*
@@ -42,6 +45,7 @@ public:
         }
     }
     Token(const double& val) { m_val = val; m_isVal = true; }
+    Token(const std::string& func) { m_func = func; m_isFunc = true; }
 
     /*
      *  Methods to get the type of the token
@@ -49,6 +53,7 @@ public:
     bool isOp() const { return m_isOp; }
     bool isVal() const { return m_isVal; }
     bool isIden() const { return m_isIden; }
+    bool isFunc() const { return m_isFunc; }
     bool isLParen() const { return m_isLParen; }
 
     /*
@@ -65,6 +70,10 @@ public:
     char getIden() const {
         assert(m_isIden);
         return m_iden;
+    }
+    std::string getFunc() const {
+        assert(m_isFunc);
+        return m_func;
     }
 
 
@@ -97,10 +106,12 @@ private:
     std::string m_infixStr;
     std::deque<Token> m_postfixQueue;
     std::vector<char> m_freeVars;
+    const std::vector<std::string> m_functions { "sin", "cos", "max" };
 
     // Private functions
     void parseToPostfix();
     double _evaluate(const std::map<char, double>&) const;
+    void getFunctionPos(std::map<std::string, std::vector<size_t>>&) const;
 public:
     // Constructors
     ExpressionHandler();

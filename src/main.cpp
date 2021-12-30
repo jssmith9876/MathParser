@@ -3,17 +3,13 @@
 
 int main(int argc, char** argv) {
     // Create an infix string to parse through
-    std::string test = "x + 3*y + 2";
+    std::string test = "sin( max(2, 3) / 3 * 3.14) ";
 
-    std::vector<char> freeVars {'x', 'y'};
+    ExpressionHandler myParser(test);
 
-    ExpressionHandler myParser(freeVars, test);
+    std::cout << myParser.getPostfixStr() << std::endl;
 
-    std::map<char, double> valueMap;
-    valueMap['x'] = 1.0;
-    valueMap['y'] = 6.0;
-
-    std::cout << myParser.evaluate(valueMap) << std::endl;
+    // std::cout << myParser.evaluate(valueMap) << std::endl;
 
     return 0;
 }

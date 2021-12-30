@@ -51,6 +51,8 @@ std::string ExpressionHandler::getPostfixStr() const {
             res += t.getOp();
         else if (t.isIden()) 
             res += t.getIden();
+        else if (t.isFunc())
+            res += t.getFunc();
         else
             res += std::to_string(t.getVal());
         res += " ";
@@ -82,11 +84,43 @@ void ExpressionHandler::setInfixStr(const std::string& infixStr) {
 void ExpressionHandler::parseToPostfix() {
     std::stack<Token> operatorStack;
     std::string temp = "";
-    int infixStrLen = m_infixStr.length();
+    size_t infixStrLen = m_infixStr.length();
     char prevChar = ' ', currentChar, nextChar;
+
     std::vector<char>::iterator freeVarIter;
 
-    for (int i = 0; i < infixStrLen; i++) {
+    // For finding the math functions in the str
+    std::map<std::string, std::vector<size_t>> functionPosInStr;
+    std::map<std::string, std::vector<size_t>>::iterator functionIterator;
+    std::vector<size_t>::iterator funPosIterator;
+    bool hasFoundFunction;
+
+    // Get the all of the function positions in the string
+    getFunctionPos(functionPosInStr);
+
+    for (size_t i = 0; i < infixStrLen; i++) {
+        hasFoundFunction = false;
+
+        // First, check if we're at a function position
+        for (functionIterator = functionPosInStr.begin(); functionIterator != functionPosInStr.end(); functionIterator++) {
+            funPosIterator = std::find(functionIterator->second.begin(), functionIterator->second.end(), i);
+
+            // We found the function
+            if (funPosIterator != functionIterator->second.end()) {
+                operatorStack.push(Token(functionIterator->first));
+
+                // Increase the size of i to skip over the rest of the function
+                i += functionIterator->first.size() - 1;
+                
+                hasFoundFunction = true;
+                break;  // We found a function, so no need to look for any more
+            }
+        }
+
+        // If we've found a function, we don't need to look any further
+        if (hasFoundFunction) 
+            continue;
+
         // Evaluate the character
         currentChar = m_infixStr[i];
         
@@ -100,11 +134,10 @@ void ExpressionHandler::parseToPostfix() {
         // Check if the current char is a free variable
         freeVarIter = std::find(m_freeVars.begin(), m_freeVars.end(), currentChar);
 
-
+        // Handle free variables
         if (freeVarIter != m_freeVars.end() && 
             !isalpha(prevChar) &&
             !isalpha(nextChar)) {
-            
             m_postfixQueue.push_back(Token(*freeVarIter));  
         } else if (currentChar == ' ') {
             continue;
@@ -160,6 +193,11 @@ void ExpressionHandler::parseToPostfix() {
 
             assert(operatorStack.top().isLParen());
             operatorStack.pop();
+
+            if (!operatorStack.empty() && operatorStack.top().isFunc()) {
+                m_postfixQueue.push_back(operatorStack.top());
+                operatorStack.pop();
+            }
         }
 
         // Set the previous char
@@ -235,3 +273,27 @@ double ExpressionHandler::evaluate() const {
 double ExpressionHandler::evaluate(const std::map<char, double>& valueMap) const {
     return _evaluate(valueMap);
 }
+
+
+// Function to find all of the positions of the predefined functions in the string
+void ExpressionHandler::getFunctionPos(std::map<std::string, std::vector<size_t>>& functionPosInStr) const {
+    std::vector<size_t> currFunctionPos;
+    size_t currPos;
+    size_t infixStrSize = m_infixStr.size();
+
+    // Something that could probably be parallelized but I'm too lazy :-)
+    for (auto& func : m_functions) {
+        currPos = m_infixStr.find(func);
+
+        while (currPos != std::string::npos) {
+            currFunctionPos.push_back(currPos);
+
+            currPos = m_infixStr.find(func, currPos + infixStrSize);
+        }
+
+        functionPosInStr[func] = currFunctionPos;
+
+        // Reset the variables
+        currFunctionPos.clear();
+    }
+} 
